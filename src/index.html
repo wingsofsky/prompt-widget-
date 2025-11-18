@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt Widget</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    .popup-item {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .popup-item:hover {
+      background-color: rgba(59, 130, 246, 0.5);
+      transform: translateX(4px);
+    }
+    .copy-feedback {
+      animation: flash 0.3s ease-in-out;
+    }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body class="bg-transparent">
+  <!-- 主悬浮窗容器 -->
+  <div
+    data-tauri-drag-region
+    class="rounded-full bg-gray-900 bg-opacity-90 backdrop-blur-sm shadow-2xl flex items-center justify-around px-4 py-2 relative"
+    style="width: 280px; height: 60px;"
+  >
+    <!-- 学术按钮 -->
+    <button id="btn-academic" class="text-blue-400 hover:text-blue-300 transition-colors p-2 rounded-full hover:bg-gray-800" title="学术">
+      <i data-lucide="book-marked" class="w-6 h-6"></i>
+    </button>
+
+    <!-- 故事按钮 -->
+    <button id="btn-story" class="text-purple-400 hover:text-purple-300 transition-colors p-2 rounded-full hover:bg-gray-800" title="故事">
+      <i data-lucide="scroll-text" class="w-6 h-6"></i>
+    </button>
+
+    <!-- 代码按钮 -->
+    <button id="btn-code" class="text-green-400 hover:text-green-300 transition-colors p-2 rounded-full hover:bg-gray-800" title="代码">
+      <i data-lucide="code-2" class="w-6 h-6"></i>
+    </button>
+
+    <!-- 破甲按钮 -->
+    <button id="btn-jailbreak" class="text-red-400 hover:text-red-300 transition-colors p-2 rounded-full hover:bg-gray-800" title="破甲">
+      <i data-lucide="shield-off" class="w-6 h-6"></i>
+    </button>
+
+    <!-- 设置按钮 -->
+    <button id="btn-settings" class="text-gray-400 hover:text-gray-300 transition-colors p-2 rounded-full hover:bg-gray-800" title="设置">
+      <i data-lucide="settings" class="w-6 h-6"></i>
+    </button>
+
+    <!-- 退出按钮 -->
+    <button id="btn-quit" class="text-red-500 hover:text-red-400 transition-colors p-2 rounded-full hover:bg-gray-800" title="退出">
+      <i data-lucide="x" class="w-6 h-6"></i>
+    </button>
+
+  </div>
+
+  <!-- 弹出列表（移到主容器外部，使用 fixed 定位） -->
+  <div
+    id="popup-list"
+    class="hidden fixed bg-gray-800 bg-opacity-95 backdrop-blur-sm rounded-lg shadow-2xl max-h-96 overflow-y-auto"
+    style="min-width: 280px; max-width: 400px; top: 70px; left: 0; z-index: 9999;"
+  >
+    <!-- 动态生成的提示词列表 -->
+  </div>
+
+  <script type="module" src="main.js"></script>
+  <script>
+    // 初始化 Lucide 图标
+    lucide.createIcons();
+  </script>
+</body>
+</html>

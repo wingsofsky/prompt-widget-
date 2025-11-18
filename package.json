@@ -1,0 +1,24 @@
+{
+  "name": "prompt-widget",
+  "version": "1.0.0",
+  "description": "悬浮提示词助手",
+  "main": "index.js",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.4",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
+    "@tauri-apps/plugin-store": "^2.4.1"
+  }
+}

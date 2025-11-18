@@ -1,0 +1,26 @@
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+src-tauri/target/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Tauri specific
+src-tauri/target/
+src-tauri/WixTools/
+
+# Environment variables
+.env
+.env.local
