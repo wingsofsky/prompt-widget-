@@ -1,4 +1,4 @@
-# Prompt Widget - AI提示词管理桌面应用
+# Prompt Widget - 提示词助手windows浮窗
 
 [English](#english) | [中文](#中文)
 
