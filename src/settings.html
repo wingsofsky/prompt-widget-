@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理提示词</title>
+  <title>管理中心</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -13,14 +16,14 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
-    .category-item {
+    .category-item, .file-item {
       cursor: pointer;
       transition: all 0.2s;
     }
-    .category-item:hover {
+    .category-item:hover, .file-item:hover {
       background-color: rgba(99, 102, 241, 0.1);
     }
-    .category-item.active {
+    .category-item.active, .file-item.active {
       background-color: rgba(99, 102, 241, 0.2);
       border-left: 4px solid #6366f1;
     }
@@ -46,6 +49,32 @@
     .modal.show {
       display: flex;
     }
+    .tab-button {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-button.active {
+      border-bottom: 3px solid #6366f1;
+      color: #6366f1;
+      font-weight: 600;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: flex;
+    }
+    .markdown-preview {
+      line-height: 1.6;
+    }
+    .markdown-preview h1 { font-size: 2em; font-weight: bold; margin: 1em 0 0.5em; }
+    .markdown-preview h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
+    .markdown-preview h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+    .markdown-preview p { margin: 0.5em 0; }
+    .markdown-preview pre { background: #f6f8fa; padding: 1em; border-radius: 6px; overflow-x: auto; }
+    .markdown-preview code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-family: 'Courier New', monospace; }
+    .markdown-preview ul, .markdown-preview ol { margin: 0.5em 0; padding-left: 2em; }
+    .markdown-preview blockquote { border-left: 4px solid #ddd; padding-left: 1em; margin: 0.5em 0; color: #666; }
   </style>
 </head>
 <body>
@@ -57,9 +86,9 @@
           <div>
             <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
               <i data-lucide="library" class="w-8 h-8 text-indigo-600"></i>
-              提示词管理中心
+              管理中心
             </h1>
-            <p class="text-gray-600 mt-2">管理您的 AI 提示词库</p>
+            <p class="text-gray-600 mt-2">管理提示词和聊天记录</p>
           </div>
           <div class="flex gap-2">
             <button id="btn-help" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors flex items-center gap-2" title="帮助">
@@ -72,24 +101,33 @@
             </button>
           </div>
         </div>
+
+        <!-- Tab 导航 -->
+        <div class="flex gap-6 mt-6 border-b border-gray-200">
+          <button class="tab-button active px-4 py-2 text-gray-700" data-tab="prompts">
+            <i data-lucide="file-text" class="w-4 h-4 inline mr-1"></i>
+            提示词管理
+          </button>
+          <button class="tab-button px-4 py-2 text-gray-700" data-tab="chats">
+            <i data-lucide="message-square" class="w-4 h-4 inline mr-1"></i>
+            聊天记录
+          </button>
+        </div>
       </div>
 
-      <!-- 主内容区 -->
-      <div class="bg-white rounded-b-xl shadow-lg flex" style="min-height: 600px;">
-        <!-- 左侧类别列表 -->
-        <div class="w-1/4 border-r border-gray-200 p-4">
+      <!-- Tab 内容区 -->
+      <!-- 提示词管理Tab -->
+      <div id="tab-prompts" class="tab-content active bg-white rounded-b-xl shadow-lg" style="min-height: 600px;">
+        <div class="w-1/3 border-r border-gray-200 p-4">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-gray-800">类别</h2>
             <button id="btn-add-category" class="p-2 bg-indigo-100 hover:bg-indigo-200 rounded-lg transition-colors" title="新增类别">
               <i data-lucide="plus" class="w-4 h-4 text-indigo-600"></i>
             </button>
           </div>
-          <div id="category-list" class="space-y-2">
-            <!-- 动态生成的类别列表 -->
-          </div>
+          <div id="category-list" class="space-y-2"></div>
         </div>
 
-        <!-- 右侧提示词列表 -->
         <div class="flex-1 p-6">
           <div id="no-selection" class="h-full flex items-center justify-center text-gray-400">
             <div class="text-center">
@@ -116,9 +154,104 @@
                 </button>
               </div>
             </div>
+            <div id="prompt-list" class="grid grid-cols-1 gap-4"></div>
+          </div>
+        </div>
+      </div>
 
-            <div id="prompt-list" class="grid grid-cols-1 gap-4">
-              <!-- 动态生成的提示词卡片 -->
+      <!-- 聊天记录Tab -->
+      <div id="tab-chats" class="tab-content bg-white rounded-b-xl shadow-lg" style="min-height: 600px;">
+        <!-- 设置区域 -->
+        <div class="w-full border-b border-gray-200 p-4">
+          <div class="flex items-center gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">聊天记录库路径</label>
+              <div class="flex gap-2">
+                <input id="chat-root-path" type="text" readonly class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700" placeholder="未设置">
+                <button id="btn-select-folder" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-2">
+                  <i data-lucide="folder-open" class="w-4 h-4"></i>
+                  选择文件夹
+                </button>
+                <button id="btn-refresh-chats" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                  刷新
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 两栏布局 -->
+        <div class="flex" style="height: 540px;">
+          <!-- 栏1: 类别（文件夹） -->
+          <div class="w-1/3 border-r border-gray-200 p-4 overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <i data-lucide="folders" class="w-5 h-5"></i>
+              类别
+            </h3>
+            <div id="chat-category-list" class="space-y-2">
+              <div class="text-gray-400 text-sm p-4 text-center">
+                请先选择聊天记录库路径
+              </div>
+            </div>
+          </div>
+
+          <!-- 栏2: 文件列表（双击打开） -->
+          <div class="flex-1 p-4 overflow-y-auto">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                对话列表
+              </h3>
+              <p class="text-sm text-gray-500">双击文件在新窗口打开</p>
+            </div>
+            <div id="chat-file-list" class="space-y-2">
+              <div class="text-gray-400 text-sm p-4 text-center">
+                请从左侧选择类别
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        </div>
+
+        <!-- 两栏布局 -->
+        <div class="flex" style="height: 540px;">
+          <!-- 栏1: 类别（文件夹） -->
+          <div class="flex-1 p-4 overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <i data-lucide="folders" class="w-5 h-5"></i>
+              类别
+            </h3>
+            <div id="chat-category-list" class="space-y-2">
+              <div class="text-gray-400 text-sm p-4 text-center">
+                请先选择聊天记录库路径
+              </div>
+            </div>
+          </div>
+
+          <!-- 栏2: 文件列表 -->
+          <div class="flex-1 p-4 overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <i data-lucide="file-text" class="w-5 h-5"></i>
+              对话
+            </h3>
+            <div id="chat-file-list" class="space-y-2">
+              <div class="text-gray-400 text-sm p-4 text-center">
+                请从左侧选择类别
+              </div>
+            </div>
+          </div>
+
+          <!-- 栏3: Markdown 预览 -->
+          <div class="flex-1 p-4 overflow-y-auto">
+            <div id="chat-preview-area">
+              <div class="h-full flex items-center justify-center text-gray-400">
+                <div class="text-center">
+                  <i data-lucide="file" class="w-16 h-16 mx-auto mb-4 opacity-50"></i>
+                  <p class="text-lg">选择对话查看内容</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -126,7 +259,7 @@
     </div>
   </div>
 
-  <!-- 类别编辑模态框 -->
+  <!-- Modals (from original file) -->
   <div id="modal-category" class="modal">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
       <h3 id="modal-category-title" class="text-xl font-bold text-gray-800 mb-4">新增类别</h3>
@@ -141,7 +274,6 @@
     </div>
   </div>
 
-  <!-- 提示词编辑模态框 -->
   <div id="modal-prompt" class="modal">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl">
       <h3 id="modal-prompt-title" class="text-xl font-bold text-gray-800 mb-4">新增提示词</h3>
@@ -160,7 +292,6 @@
     </div>
   </div>
 
-  <!-- 帮助模态框 -->
   <div id="modal-help" class="modal">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-6">
@@ -174,7 +305,6 @@
       </div>
 
       <div class="prose max-w-none">
-        <!-- 国内平台 -->
         <div class="mb-8 p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg border border-red-200">
           <h4 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i data-lucide="globe" class="w-5 h-5 text-red-600"></i>
@@ -183,110 +313,55 @@
           <div class="space-y-3 text-gray-700">
             <div class="flex items-start gap-2">
               <i data-lucide="star" class="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0"></i>
-              <div>
-                <span class="font-semibold">小红书</span>：搜索 "ChatGPT 提示词"、"AI 提示词"、"Claude 破解" 等关键词，可以找到大量最新的提示词分享
-              </div>
+              <div><span class="font-semibold">小红书</span>：搜索 "ChatGPT 提示词"、"AI 提示词"、"Claude 破解" 等关键词</div>
             </div>
             <div class="flex items-start gap-2">
               <i data-lucide="star" class="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0"></i>
-              <div>
-                <span class="font-semibold">知乎</span>：在问答和文章中搜索相关话题，有很多专业的提示词工程分享
-              </div>
+              <div><span class="font-semibold">知乎</span>：在问答和文章中搜索相关话题</div>
             </div>
             <div class="flex items-start gap-2">
               <i data-lucide="star" class="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0"></i>
-              <div>
-                <span class="font-semibold">B站</span>：搜索 "Prompt Engineering"、"提示词教程"，有很多视频教程和实战分享
-              </div>
+              <div><span class="font-semibold">B站</span>：搜索 "Prompt Engineering"、"提示词教程"</div>
             </div>
           </div>
         </div>
 
-        <!-- Reddit 论坛 -->
         <div class="mb-6">
           <h4 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
             <i data-lucide="crown" class="w-5 h-5 text-purple-600"></i>
-            主要的"破甲"论坛
+            Reddit 论坛推荐
           </h4>
-          <p class="text-gray-600 mb-3">这是最专注的社区，直接讨论针对 OpenAI (GPT) 和其他模型的"破甲"提示词。</p>
-          <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <a href="https://www.reddit.com/r/ChatGPTJailbreak/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2">
-              r/ChatGPTJailbreak
-              <i data-lucide="external-link" class="w-4 h-4"></i>
-            </a>
-            <p class="text-sm text-gray-600 mt-2">这是目前最主要、最活跃的社区，专门分享和讨论针对 ChatGPT、GPT-4o 等模型的"破甲"提示词。它也涵盖了其他所有 AI 模型。</p>
-          </div>
-        </div>
-
-        <!-- 相关技术论坛 -->
-        <div class="mb-6">
-          <h4 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <i data-lucide="wrench" class="w-5 h-5 text-orange-600"></i>
-            相关的技术与讨论论坛
-          </h4>
-          <p class="text-gray-600 mb-3">这些社区更广泛地讨论提示词工程，但也经常会涉及"破甲"技术和绕过限制的方法。</p>
-
-          <div class="space-y-4">
-            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <a href="https://www.reddit.com/r/PromptEngineering/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2">
-                r/PromptEngineering
-                <i data-lucide="external-link" class="w-4 h-4"></i>
-              </a>
-              <p class="text-sm text-gray-600 mt-2">一个非常大的社区，专注于提示词的开发和工程实践。您会在这里找到大量关于如何优化提示词（包括"破甲"）的技术性讨论。</p>
+          <div class="space-y-3">
+            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <a href="https://www.reddit.com/r/ChatGPTJailbreak/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold">r/ChatGPTJailbreak</a>
+              <p class="text-sm text-gray-600 mt-1">最活跃的破甲社区</p>
             </div>
-
             <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <a href="https://www.reddit.com/r/SillyTavernAI/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2">
-                r/SillyTavernAI
-                <i data-lucide="external-link" class="w-4 h-4"></i>
-              </a>
-              <p class="text-sm text-gray-600 mt-2">虽然这是一个关于特定 AI 聊天界面的论坛，但它高度专注于绕过内容限制（特别是针对 Claude）以用于角色扮演和故事写作。这里有大量关于 Claude 模型的"破甲"讨论。</p>
-            </div>
-
-            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <a href="https://www.reddit.com/r/ClaudeAIJailbreak/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2">
-                r/ClaudeAI
-                <i data-lucide="external-link" class="w-4 h-4"></i>
-              </a>
-              <p class="text-sm text-gray-600 mt-2">经常会涉及模型的限制和如何"说服"模型执行某些任务。</p>
-            </div>
-
-            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <a href="https://www.reddit.com/r/ChatGPTPromptGenius/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-2">
-                r/ChatGPTPromptGenius
-                <i data-lucide="external-link" class="w-4 h-4"></i>
-              </a>
-              <p class="text-sm text-gray-600 mt-2">一个分享和请求 ChatGPT 提示词的社区。虽然不专门针对"破甲"，但经常会出现相关内容和请求。</p>
+              <a href="https://www.reddit.com/r/PromptEngineering/" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold">r/PromptEngineering</a>
+              <p class="text-sm text-gray-600 mt-1">提示词工程技术讨论</p>
             </div>
           </div>
         </div>
 
-        <!-- 使用提示 -->
         <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-          <h4 class="font-bold text-gray-800 mb-2 flex items-center gap-2">
-            <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-600"></i>
-            使用提示
-          </h4>
-          <ul class="text-sm text-gray-700 space-y-2 ml-6 list-disc">
-            <li>在本软件中点击提示词会自动复制到剪贴板，然后可以直接粘贴到 AI 对话框中使用</li>
-            <li>建议定期在以上平台搜索最新的提示词，因为 AI 模型会不断更新，旧的"破甲"方法可能会失效</li>
-            <li>在设置页面中，您可以随时添加、编辑或删除提示词</li>
-            <li>合理使用提示词，遵守相关法律法规和平台使用条款</li>
+          <h4 class="font-bold text-gray-800 mb-2">💡 使用提示</h4>
+          <ul class="text-sm text-gray-700 space-y-1 ml-6 list-disc">
+            <li>点击提示词会自动复制到剪贴板</li>
+            <li>使用浏览器插件导出聊天记录为 Markdown 文件</li>
+            <li>建议定期更新提示词库</li>
           </ul>
         </div>
       </div>
 
       <div class="mt-6 flex justify-end">
-        <button id="btn-close-help-bottom" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
-          我知道了
-        </button>
+        <button id="btn-close-help-bottom" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">我知道了</button>
       </div>
     </div>
   </div>
 
   <script type="module" src="settings.js"></script>
+  <script type="module" src="chat-history.js"></script>
   <script>
-    // 初始化 Lucide 图标
     lucide.createIcons();
   </script>
 </body>

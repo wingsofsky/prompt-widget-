@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>聊天记录查看器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9fafb;
+    }
+    .markdown-preview {
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .markdown-preview h1 {
+      font-size: 2em;
+      font-weight: bold;
+      margin: 1em 0 0.5em;
+      padding-bottom: 0.3em;
+      border-bottom: 2px solid #eee;
+    }
+    .markdown-preview h2 {
+      font-size: 1.5em;
+      font-weight: bold;
+      margin: 0.83em 0;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid #eee;
+    }
+    .markdown-preview h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0; }
+    .markdown-preview p { margin: 0.5em 0; }
+    .markdown-preview pre {
+      background: #f6f8fa;
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+      border: 1px solid #e1e4e8;
+    }
+    .markdown-preview code {
+      background: #f6f8fa;
+      padding: 0.2em 0.4em;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 85%;
+    }
+    .markdown-preview pre code {
+      background: none;
+      padding: 0;
+    }
+    .markdown-preview ul, .markdown-preview ol { margin: 0.5em 0; padding-left: 2em; }
+    .markdown-preview li { margin: 0.25em 0; }
+    .markdown-preview blockquote {
+      border-left: 4px solid #dfe2e5;
+      padding-left: 1em;
+      margin: 0.5em 0;
+      color: #6a737d;
+    }
+    .markdown-preview table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    .markdown-preview table th,
+    .markdown-preview table td {
+      border: 1px solid #dfe2e5;
+      padding: 6px 13px;
+    }
+    .markdown-preview table th {
+      background: #f6f8fa;
+      font-weight: 600;
+    }
+    .markdown-preview table tr:nth-child(2n) {
+      background: #f6f8fa;
+    }
+    .markdown-preview a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    .markdown-preview a:hover {
+      text-decoration: underline;
+    }
+    .markdown-preview img {
+      max-width: 100%;
+      height: auto;
+    }
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <div class="text-center">
+      <div class="animate-spin h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p>加载中...</p>
+    </div>
+  </div>
+  <div id="content" class="p-6" style="display: none;">
+    <div class="markdown-preview" id="markdown-content"></div>
+  </div>
+
+  <script type="module">
+    import { readTextFile } from '@tauri-apps/plugin-fs';
+    import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+
+    const currentWindow = getCurrentWebviewWindow();
+
+    async function loadContent() {
+      try {
+        // 从窗口标签获取文件路径
+        const label = currentWindow.label;
+        const filePath = label.replace('chat-viewer-', '').replace(/-/g, '/');
+
+        console.log('Loading file:', filePath);
+
+        // 读取文件内容
+        const content = await readTextFile(filePath);
+
+        // 渲染 Markdown
+        const html = marked.parse(content);
+        document.getElementById('markdown-content').innerHTML = html;
+
+        // 高亮代码块
+        document.querySelectorAll('pre code').forEach((block) => {
+          hljs.highlightElement(block);
+        });
+
+        // 显示内容，隐藏加载
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+
+        // 设置窗口标题为文件名
+        const fileName = filePath.split('/').pop().replace('.md', '');
+        await currentWindow.setTitle(fileName);
+
+      } catch (error) {
+        console.error('加载文件失败:', error);
+        document.getElementById('loading').innerHTML = `
+          <div class="text-center">
+            <p class="text-red-600 text-lg mb-2">加载失败</p>
+            <p class="text-gray-600">${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // 页面加载时执行
+    loadContent();
+  </script>
+</body>
+</html>
